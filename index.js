@@ -1,8 +1,15 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
+const Person = require('./models/person')
 
 const app = express()
+
+const PORT = process.env.PORT
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`)
+})
 
 morgan.token('body', (req, res) => JSON.stringify(req.body))
 app.use(cors())
@@ -43,38 +50,26 @@ const infoBody =
 `<p> Phonebook has info for ${persons.length} people </p> 
 <p> ${Date()}</p>`
 
-
-app.get('/api/persons/:id', function (req, res) {
-    const id = Number(req.params.id)
-    const person = persons.find(person => person.id === id)
-    console.log(person)
-    if (person) {
-        res.json(person)
-    } else {
-        res.status(404).end()
-    }
-})
+app.get('/api/persons/:id', (request, response) => {
+    Person.findById(request.params.id).then(person => {
+      response.json(person)
+    })
+  })
 
 app.post('/api/persons', (request, response) => {
     console.log(request.headers)
     const body = request.body
-    if (!body.name || !body.number) {
-        return response.status(400).json({
-            error: 'content missing'
-        })
-    }
-    if (persons.some(person => person.name === body.name)) {
-        return response.status(400).json({
-            error: 'name is already taken'
-        })
-    }
-    const person = {
-        id: generateId(),
+    const person = new Person({
+        id: body.id,
         name: body.name,
         number: body.number,
-    }
-    persons = persons.concat(person)
-    response.json(person)
+    })
+    console.log(person.id)
+    console.log(person.name)
+    console.log(person.number)
+    person.save().then(savedPerson => {
+        response.json(savedPerson)
+    })
 })
 
 app.delete('/api/persons/:id', (request, response) => {
@@ -92,11 +87,5 @@ app.get('/info', (req, res) => {
     res.send(infoBody)
 })
 
-
-
-const PORT = process.env.PORT || 3001
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`)
-})
 
 
